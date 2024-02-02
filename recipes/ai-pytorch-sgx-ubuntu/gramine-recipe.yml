@@ -77,7 +77,7 @@
         - apt:
             name: ['docker.io', 'python3', 'python3-pip']
         - pip:
-            name: ['docker', 'jinja2', 'tomli', 'tomli-w', 'pyyaml']
+            name: ['docker', 'jinja2', 'tomli', 'tomli-w', 'pyyaml', 'torchvision', 'pillow']
             executable: pip3
         - user:
             name: "{{ ansible_user_id }}"
@@ -120,25 +120,39 @@
             path: /etc/sgx_default_qcnl.conf
             regexp: '( \"pccs_url\": \"https://).*(/sgx/certification.*)'
             replace: '\1global.acccache.azure.net\2'
-        - apt:
-            name: gramine
-            update_cache: yes
-            force: yes
+        - git:
+            repo: 'https://github.com/bigdata-memory/gramine-ITA'
+            dest: /tmp/gramine-ITA
+            version: amber_pr
+        - command:
+            chdir: /tmp/gramine-ITA
+            cmd: meson setup build/
+        - command:
+            chdir: /tmp/gramine-ITA
+            cmd: ninja -C build/
+        -command:
+            chdir: /tmp/gramine-ITA
+            cmd: ninja -C build/ install
+            become: true
+        # - apt:
+        #     name: gramine
+        #     update_cache: yes
+        #     force: yes
 
     - name: Generate a signing key for gramine
       command:
         cmd: gramine-sgx-gen-private-key
 
-    - name: Clone the Gramine Project for Intel Confidential Compute for X and POC example repository
-      git:
-        repo: "{{ item.repo }}"
-        dest: "{{ item.dest }}"
-      loop:
-        - { repo: 'https://github.com/shreejam21/contrib.git', dest: '/tmp/contrib' }
-        - { repo: 'https://github.com/shreejam21/sgx-demo.git', dest: '/tmp/sgx-demo' }
+    # - name: Clone the Gramine Project for Intel Confidential Compute for X and POC example repository
+    #   git:
+    #     repo: "{{ item.repo }}"
+    #     dest: "{{ item.dest }}"
+    #   loop:
+    #     - { repo: 'https://github.com/shreejam21/contrib.git', dest: '/tmp/contrib' }
+    #     - { repo: 'https://github.com/shreejam21/sgx-demo.git', dest: '/tmp/sgx-demo' }
 
 
-    - name: Build Docker image
-      shell: cd /tmp/sgx-demo && docker build -t sgx-app .
-      become: true
+    # - name: Build Docker image
+    #   shell: cd /tmp/sgx-demo && docker build -t sgx-app .
+    #   become: true
 
